@@ -22,13 +22,88 @@ const ShowProducts = () => {
     setProducts(respuesta.data);
   };
 
+  const openModal = (op, id, name, description, price) => {
+    setId("");
+    setName("");
+    setDescription("");
+    setPrice("");
+    setOperation(op);
+    if (op === 1) {
+        setTitle("Registrar Producto");
+    }
+    else if (op === 2) {
+        setTitle("Editar Producto");
+        setId(id);
+        setName(name);
+        setDescription(description);
+        setPrice(price);
+    }
+    window.setTimeout(function(){
+        document.getElementById("nombre").focus();
+    },500);
+  }
+
+  const validar= ()=>{
+    var parametros;
+    var metodo;
+    if (name.trim() === "") {
+      show_alerta("Escribe el nombre del producto", "warning");
+    }else if (description.trim() === "") {
+      show_alerta("Escribe la descripcion del producto", "warning");
+    }else if (price.trim() === "") {
+      show_alerta("Escribe el precio del producto", "warning");
+    }
+    else{
+        if (operation === 1) {
+          parametros = {name: name.trim(), description: description.trim(), price: price};
+          metodo = "POST";
+        }
+        else{
+          parametros = {id: id, name: name.trim(), description: description.trim(), price: price};
+          metodo = "PUT";
+      }
+      enviarSolicitud(metodo, parametros);
+    }
+  }
+  const enviarSolicitud = async (metodo, parametros) => {
+    await axios({ method: metodo, url: url, data: parametros })
+      .then(function (respuesta) {
+        var tipo = respuesta.data[0];
+        var msj = respuesta.data[1];
+        show_alerta(msj, tipo);
+        if (tipo === "success") {
+          document.getElementById("btnCerrar").click();
+          getProducts();
+        }
+      }).catch(function (error) {
+        show_alerta("Error en la solicitud", "error");
+        console.log(error);})
+  }
+  const deleteProduct = (id, name) => {
+    const MySwal = withReactContent(Swal);
+    MySwal.fire({
+      title: "¿Estas seguro de eliminar el producto " + name + "?",
+      icon: "question",text:"No podras revertir esta accion",
+      showCancelButton: true,
+      confirmButtonText: "Si, eliminar",
+      cancelButtonText: "No, cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setId(id);
+        enviarSolicitud("DELETE", { id: id });
+      }else{
+        show_alerta("El producto NO fue eliminado", "info");
+      }
+    });
+  }
+
   return (
     <div className="App">
       <div className="container-fluid">
         <div className="row mt-3">
           <div className="col-md-4 offset-md-4">
             <div className="d-grid mx-auto">
-              <button
+              <button onClick={() => openModal(1)}
                 className="btn btn-dark"
                 data-bs-toggle="modal"
                 data-bs-target="#modalProducts"
@@ -60,12 +135,13 @@ const ShowProducts = () => {
                         ${new Intl.NumberFormat("es-MX").format(product.price)}
                       </td>
                       <td>
-                        <button className="btn btn-warning" onClick={() => {}}>
-                          <i className="fa-solid fa-trash-can"></i>
+                        <button onClick={()=>openModal(2,product.id,product.name,product.description,product.price)} 
+                        className="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalProducts">
+                          <i className="fa-solid fa-edit"></i>
                         </button>
                         &nbsp;
-                        <button className="btn btn-danger" onClick={() => {}}>
-                          <i className="fa-solid fa-pen-to-square"></i>
+                        <button onClick={()=>deleteProduct(product.id,product.name)} className="btn btn-danger">
+                          <i className="fa-solid fa-trash"></i>
                         </button>
                       </td>
                     </tr>
@@ -101,13 +177,13 @@ const ShowProducts = () => {
                         onChange={(e) => setPrice(e.target.value)}></input>
                     </div>
                     <div className="d-grid col-6 mx-auto">
-                        <button className="btn btn-success">
+                        <button onClick={()=> validar()} className="btn btn-success">
                         <i className="fa-solid fa-floppy-disk"></i> Guardar
                         </button>
                     </div>
                 </div>
                 <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnCerrar" className="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
